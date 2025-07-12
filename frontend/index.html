@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YC Application Coach</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 YC Application Coach</h1>
+            <p>Get expert coaching on your Y Combinator application</p>
+        </header>
+
+        <div class="question-box">
+            <h2>Question:</h2>
+            <p><strong>"What is your company going to make? Please describe your product and what it does or will do."</strong></p>
+        </div>
+
+        <div class="chat-container" id="chatContainer">
+            <div class="message ai-message">
+                <div class="message-content">
+                    <p>Hi! I'm here to help you craft a compelling answer to the YC application question. Let's start with your initial draft - what is your company going to make?</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="userInput" 
+                    placeholder="Describe your product and what it does..."
+                    rows="4"
+                ></textarea>
+                <button id="sendButton" onclick="sendMessage()">
+                    <span id="buttonText">Send</span>
+                    <span id="loadingSpinner" class="spinner" style="display: none;">⏳</span>
+                </button>
+            </div>
+            <div class="input-footer">
+                <small>Press Ctrl+Enter to send</small>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
