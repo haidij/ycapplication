@@ -1,37 +1,131 @@
-// YC Coach App JavaScript
+// YC Coach App JavaScript with Login
 class YCCoach {
     constructor() {
         this.conversationHistory = [];
-        this.apiUrl = 'YOUR_API_GATEWAY_URL_HERE'; // Update this after deployment
+        this.apiUrl = 'https://j59j74jwbg.execute-api.us-east-1.amazonaws.com/prod/chat';
         this.isLoading = false;
+        this.isLoggedIn = false;
+        this.correctPassword = 'yc-coach-2025'; // Will be replaced during deployment
+        
+        this.initializeApp();
+    }
+    
+    initializeApp() {
+        // Check if already logged in (session storage)
+        if (sessionStorage.getItem('ycCoachLoggedIn') === 'true') {
+            this.showMainApp();
+        } else {
+            this.showLoginScreen();
+        }
         
         this.initializeEventListeners();
     }
     
     initializeEventListeners() {
+        // Login form
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+        }
+        
+        // Logout button
+        const logoutButton = document.getElementById('logoutButton');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', () => this.handleLogout());
+        }
+        
+        // Main app event listeners
         const userInput = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
         
-        // Send message on button click
-        sendButton.addEventListener('click', () => this.sendMessage());
+        if (sendButton) {
+            sendButton.addEventListener('click', () => this.sendMessage());
+        }
         
-        // Send message on Ctrl+Enter
-        userInput.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                this.sendMessage();
+        if (userInput) {
+            // Send message on Ctrl+Enter
+            userInput.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+            
+            // Auto-resize textarea
+            userInput.addEventListener('input', () => {
+                userInput.style.height = 'auto';
+                userInput.style.height = userInput.scrollHeight + 'px';
+            });
+        }
+    }
+    
+    handleLogin(e) {
+        e.preventDefault();
+        const passwordInput = document.getElementById('passwordInput');
+        const loginError = document.getElementById('loginError');
+        const password = passwordInput.value.trim();
+        
+        if (password === this.correctPassword) {
+            // Successful login
+            sessionStorage.setItem('ycCoachLoggedIn', 'true');
+            this.isLoggedIn = true;
+            this.showMainApp();
+            loginError.style.display = 'none';
+        } else {
+            // Failed login
+            loginError.textContent = 'Incorrect password. Please try again.';
+            loginError.style.display = 'block';
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+    
+    handleLogout() {
+        sessionStorage.removeItem('ycCoachLoggedIn');
+        this.isLoggedIn = false;
+        this.conversationHistory = [];
+        this.showLoginScreen();
+        
+        // Clear chat
+        const chatContainer = document.getElementById('chatContainer');
+        if (chatContainer) {
+            chatContainer.innerHTML = `
+                <div class="message ai-message">
+                    <div class="message-content">
+                        Welcome! I'm your Y Combinator application coach. I'll help you craft compelling answers based on 30+ successful applications.
+                        <br><br>
+                        <strong>⚠️ Important:</strong> Please wait 30+ seconds between messages to avoid AWS rate limiting.
+                        <br><br>
+                        Let's start with the key question: <strong>"What is your company going to make? Please describe your product and what it does or will do."</strong>
+                        <br><br>
+                        Share your initial idea, and I'll help you refine it into a strong YC application response.
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    showLoginScreen() {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        
+        // Focus on password input
+        setTimeout(() => {
+            const passwordInput = document.getElementById('passwordInput');
+            if (passwordInput) {
+                passwordInput.focus();
             }
-        });
-        
-        // Auto-resize textarea
-        userInput.addEventListener('input', () => {
-            userInput.style.height = 'auto';
-            userInput.style.height = userInput.scrollHeight + 'px';
-        });
+        }, 100);
+    }
+    
+    showMainApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        this.isLoggedIn = true;
     }
     
     async sendMessage() {
-        if (this.isLoading) return;
+        if (this.isLoading || !this.isLoggedIn) return;
         
         const userInput = document.getElementById('userInput');
         const message = userInput.value.trim();
@@ -50,19 +144,17 @@ class YCCoach {
         this.setLoading(true);
         
         try {
-            // Add to conversation history
-            this.conversationHistory.push({
-                role: 'user',
-                content: message
-            });
-            
-            // Call API
+            // Call API with current conversation history (NOT including current message)
             const response = await this.callAPI(message);
             
             // Add AI response to chat
             this.addMessageToChat(response.response, 'ai');
             
-            // Add to conversation history
+            // NOW add both messages to conversation history
+            this.conversationHistory.push({
+                role: 'user',
+                content: message
+            });
             this.conversationHistory.push({
                 role: 'assistant',
                 content: response.response
@@ -77,27 +169,41 @@ class YCCoach {
     }
     
     async callAPI(message) {
-        // For development/testing, return a mock response
+        console.log('callAPI called with:', message);
+        console.log('API URL:', this.apiUrl);
+        console.log('Conversation history length:', this.conversationHistory.length);
+        
+        // Check if API URL is configured
         if (this.apiUrl === 'YOUR_API_GATEWAY_URL_HERE') {
-            return this.getMockResponse(message);
+            throw new Error('API Gateway URL not configured. Please set up API Gateway first.');
         }
+        
+        const requestBody = {
+            message: message,
+            history: this.conversationHistory,
+            timestamp: Date.now()  // Cache busting
+        };
+        
+        console.log('Request body:', requestBody);
         
         const response = await fetch(this.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                message: message,
-                history: this.conversationHistory
-            })
+            body: JSON.stringify(requestBody)
         });
         
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
+            const errorText = await response.text();
+            console.log('Error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
+        console.log('Response data:', data);
         
         // Log usage info if available (for debugging)
         if (data.tokens_used) {
@@ -105,37 +211,6 @@ class YCCoach {
         }
         
         return data;
-    }
-    
-    getMockResponse(message) {
-        // Enhanced mock responses that simulate the new API coaching style
-        const responses = [
-            "That's a good foundation! Let me help you make this more specific. When you say 'small businesses' - what size exactly? Are we talking about 1-10 employees, or something else? And what specific inventory problems do they face that existing tools don't solve?",
-            
-            "I can see the direction, but let's get more concrete. Instead of 'manage inventory better' - what exactly does your platform do differently? Does it predict demand, automate reordering, track across multiple locations? What's the core feature that solves their biggest pain point?",
-            
-            "Good progress! Now, what problem led you to build this? Did you experience inventory issues yourself, or did you discover this through talking to small business owners? Understanding your origin story will help make this more compelling.",
-            
-            "This is getting clearer. Let's talk about the market - what types of small businesses specifically? Restaurants, retail stores, service businesses? Each has very different inventory needs. Focusing on one type initially will make your answer much stronger.",
-            
-            "Excellent! Now, what do these businesses use today for inventory management? Excel spreadsheets, basic POS systems, or nothing at all? Understanding their current solution helps explain why yours is needed and different.",
-            
-            "Great iteration! One more key element - do you have any early validation? Even if it's just conversations with potential customers or a simple prototype test. YC loves to see some evidence that people actually want what you're building."
-        ];
-        
-        // Simulate more intelligent response selection based on conversation length
-        const responseIndex = Math.min(this.conversationHistory.length / 2, responses.length - 1);
-        const selectedResponse = responses[Math.floor(responseIndex)] || responses[responses.length - 1];
-        
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve({ 
-                    response: selectedResponse,
-                    model_used: 'mock-claude-3.5-sonnet-v2',
-                    tokens_used: Math.floor(Math.random() * 200) + 100
-                });
-            }, 1000 + Math.random() * 2000); // Simulate API delay
-        });
     }
     
     addMessageToChat(message, sender) {
@@ -165,21 +240,23 @@ class YCCoach {
         const buttonText = document.getElementById('buttonText');
         const loadingSpinner = document.getElementById('loadingSpinner');
         
-        if (loading) {
-            sendButton.disabled = true;
-            buttonText.style.display = 'none';
-            loadingSpinner.style.display = 'inline';
-        } else {
-            sendButton.disabled = false;
-            buttonText.style.display = 'inline';
-            loadingSpinner.style.display = 'none';
+        if (sendButton && buttonText && loadingSpinner) {
+            if (loading) {
+                sendButton.disabled = true;
+                buttonText.style.display = 'none';
+                loadingSpinner.style.display = 'inline';
+            } else {
+                sendButton.disabled = false;
+                buttonText.style.display = 'inline';
+                loadingSpinner.style.display = 'none';
+            }
         }
     }
 }
 
 // Initialize the app when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    new YCCoach();
+    window.ycCoach = new YCCoach();
 });
 
 // Global function for the button onclick (backup)

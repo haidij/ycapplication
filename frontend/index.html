@@ -3,43 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YC Application Coach</title>
+    <title>YC Coach - AI Application Assistant</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🚀 YC Application Coach</h1>
-            <p>Get expert coaching on your Y Combinator application</p>
-        </header>
-
-        <div class="question-box">
-            <h2>Question:</h2>
-            <p><strong>"What is your company going to make? Please describe your product and what it does or will do."</strong></p>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <h1>🚀 YC Coach</h1>
+            <p>AI-Powered Y Combinator Application Assistant</p>
+            <form id="loginForm" class="login-form">
+                <input 
+                    type="password" 
+                    id="passwordInput" 
+                    placeholder="Enter access password"
+                    required
+                >
+                <button type="submit">Access Coach</button>
+            </form>
+            <div id="loginError" class="login-error" style="display: none;"></div>
         </div>
+    </div>
 
-        <div class="chat-container" id="chatContainer">
-            <div class="message ai-message">
-                <div class="message-content">
-                    <p>Hi! I'm here to help you craft a compelling answer to the YC application question. Let's start with your initial draft - what is your company going to make?</p>
+    <!-- Main App (hidden initially) -->
+    <div id="mainApp" class="main-app" style="display: none;">
+        <div class="container">
+            <header class="header">
+                <h1>🚀 YC Coach</h1>
+                <p>Perfect your Y Combinator application with AI-powered coaching</p>
+                <button id="logoutButton" class="logout-button">Logout</button>
+            </header>
+            
+            <div class="chat-container">
+                <div id="chatContainer" class="chat-messages">
+                    <div class="message ai-message">
+                        <div class="message-content">
+                            Welcome! I'm your Y Combinator application coach. I'll help you craft compelling answers based on 30+ successful applications.
+                            <br><br>
+                            <strong>⚠️ Important:</strong> Please wait 30+ seconds between messages to avoid AWS rate limiting.
+                            <br><br>
+                            Let's start with the key question: <strong>"What is your company going to make? Please describe your product and what it does or will do."</strong>
+                            <br><br>
+                            Share your initial idea, and I'll help you refine it into a strong YC application response.
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="input-container">
-            <div class="input-wrapper">
-                <textarea 
-                    id="userInput" 
-                    placeholder="Describe your product and what it does..."
-                    rows="4"
-                ></textarea>
-                <button id="sendButton" onclick="sendMessage()">
-                    <span id="buttonText">Send</span>
-                    <span id="loadingSpinner" class="spinner" style="display: none;">⏳</span>
-                </button>
-            </div>
-            <div class="input-footer">
-                <small>Press Ctrl+Enter to send</small>
+                
+                <div class="input-container">
+                    <textarea 
+                        id="userInput" 
+                        placeholder="Describe your company and what it makes..."
+                        rows="3"
+                    ></textarea>
+                    <button id="sendButton">
+                        <span id="buttonText">Send</span>
+                        <span id="loadingSpinner" class="loading-spinner" style="display: none;">⏳</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

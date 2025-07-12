@@ -141,9 +141,11 @@ class YCCoachSetup:
             return False
     
     def update_deploy_script(self, role_arn):
-        """Update the deploy.py script with the correct role ARN"""
+        """Update the deploy_fixed.py script with the correct role ARN"""
         try:
-            with open('deploy.py', 'r') as f:
+            deploy_file = 'deploy.py'
+            
+            with open(deploy_file, 'r', encoding='utf-8') as f:
                 content = f.read()
             
             # Replace the placeholder role ARN
@@ -152,13 +154,22 @@ class YCCoachSetup:
                 role_arn
             )
             
-            with open('deploy.py', 'w') as f:
+            # Also replace any account ID placeholders
+            account_id = self.get_account_id()
+            if account_id:
+                updated_content = updated_content.replace(
+                    'YOUR_ACCOUNT_ID',
+                    account_id
+                )
+            
+            with open(deploy_file, 'w', encoding='utf-8') as f:
                 f.write(updated_content)
             
-            print("✓ Updated deploy.py with correct role ARN")
+            print(f"✓ Updated {deploy_file} with correct role ARN")
             
         except Exception as e:
-            print(f"Error updating deploy.py: {e}")
+            print(f"Error updating deploy script: {e}")
+            print("You can manually update the role ARN in deploy_fixed.py")
     
     def run_setup(self):
         """Run the complete setup process"""
@@ -178,7 +189,7 @@ class YCCoachSetup:
             
             print("\n✅ Setup complete!")
             print("\nNext steps:")
-            print("1. Run: python deploy.py")
+            print("1. Run: python deploy_fixed.py")
             print("2. Update frontend/app.js with your API Gateway URL")
             print("3. Test your application")
             

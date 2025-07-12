@@ -1,11 +1,17 @@
 import json
 import boto3
+import os
 from botocore.exceptions import ClientError
 
 def lambda_handler(event, context):
     """
     Lambda function using the latest Bedrock API for YC coaching conversations
     """
+    
+    # Debug: List files in Lambda environment
+    print("Files in Lambda environment:")
+    for file in os.listdir('.'):
+        print(f"  - {file}")
     
     # Initialize Bedrock client with latest API
     bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')
@@ -23,63 +29,60 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Message is required'})
             }
         
-        # Enhanced coaching prompt optimized for the new API
-        system_prompt = """You are an expert Y Combinator application coach with deep experience helping startups get accepted. Your specific task is to help entrepreneurs perfect their answer to: "What is your company going to make? Please describe your product and what it does or will do."
-
-COACHING METHODOLOGY:
-1. **Problem Clarity**: Ensure they clearly articulate the specific problem
-2. **Solution Specificity**: Help them explain their solution concretely 
-3. **Target Market**: Guide them to identify their exact customer
-4. **Differentiation**: Help them explain what makes their approach unique
-5. **Traction Indicators**: Encourage mention of early validation/progress
-
-SUCCESSFUL YC ANSWERS TYPICALLY:
-- Start with a relatable, specific problem statement
-- Explain the solution in simple, jargon-free language
-- Identify a clear target market (not "everyone")
-- Show understanding of existing alternatives
-- Demonstrate early traction or validation
-- Are concise but comprehensive (2-4 sentences ideal)
-
-COACHING STYLE:
-- Ask specific, actionable follow-up questions
-- Point out vague language and ask for concrete examples
-- Be encouraging but direct about areas needing improvement
-- Help them iterate toward a compelling, clear answer
-- Reference what makes YC applications successful
-
-Focus on one key improvement area per response. Ask specific questions that lead to better clarity."""
+        # Load system prompt from file
+        try:
+            with open('system_prompt.txt', 'r', encoding='utf-8') as f:
+                system_prompt = f.read().strip()
+            print(f"✓ System prompt loaded successfully ({len(system_prompt)} chars)")
+        except FileNotFoundError:
+            print("❌ system_prompt.txt not found - using fallback")
+            # Fallback prompt if file not found
+            system_prompt = """You are an expert Y Combinator application coach. Help entrepreneurs perfect their answer to: "What is your company going to make? Please describe your product and what it does or will do."
+            
+Ask specific questions to help them clarify their problem, solution, target market, and value proposition. Be encouraging but direct about areas needing improvement."""
+        except Exception as e:
+            print(f"❌ Error reading system_prompt.txt: {e}")
+            system_prompt = """You are an expert Y Combinator application coach. Help entrepreneurs perfect their answer to: "What is your company going to make? Please describe your product and what it does or will do."
+            
+Ask specific questions to help them clarify their problem, solution, target market, and value proposition. Be encouraging but direct about areas needing improvement."""
 
         # Prepare conversation for the new Bedrock API
         messages = []
         
-        # Add conversation history
-        for msg in conversation_history:
-            messages.append({
-                "role": msg["role"],
-                "content": [{"text": msg["content"]}]
-            })
+        # Add conversation history (only if it exists and is valid)
+        if conversation_history and isinstance(conversation_history, list):
+            for msg in conversation_history:
+                if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                    messages.append({
+                        "role": msg["role"],
+                        "content": [{"type": "text", "text": str(msg["content"])}]
+                    })
         
         # Add current user message
         messages.append({
             "role": "user",
-            "content": [{"text": user_message}]
+            "content": [{"type": "text", "text": user_message}]
         })
         
-        # Use the latest Bedrock API with enhanced parameters
+        print(f"Prepared {len(messages)} messages for Bedrock")
+        
+        # Ensure we have at least one message
+        if not messages:
+            raise Exception("No messages to send to Bedrock")
+        
+        # Use the latest Bedrock API with correct format
         request_body = {
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": 1000,
-            "system": [{"text": system_prompt}],
+            "system": system_prompt,
             "messages": messages,
             "temperature": 0.7,
-            "top_p": 0.9,
-            "stop_sequences": ["Human:", "Assistant:"]
+            "top_p": 0.9
         }
         
-        # Call Bedrock with the new API
+        # Call Bedrock with working model ID
         response = bedrock.invoke_model(
-            modelId='anthropic.claude-3-5-sonnet-20241022-v2:0',  # Latest Claude 3.5 Sonnet
+            modelId='anthropic.claude-3-5-sonnet-20240620-v1:0',
             body=json.dumps(request_body),
             contentType='application/json',
             accept='application/json'
@@ -134,5 +137,8 @@ def get_cors_headers():
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
         'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Max-Age': '86400'
+        'Access-Control-Max-Age': '86400',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
     }
